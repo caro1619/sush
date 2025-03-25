@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Firebase Login System</title>
+    <script type="module">
+      // Import Firebase modules
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+      import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+          from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+      import { getFirestore, doc, setDoc, getDoc }
+          from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+
+      // Firebase Configuration (Replace with your details)
+      const firebaseConfig = {
+          apiKey: "YOUR_API_KEY",
+          authDomain: "YOUR_PROJECT.firebaseapp.com",
+          projectId: "YOUR_PROJECT_ID",
+          storageBucket: "YOUR_PROJECT.appspot.com",
+          messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+          appId: "YOUR_APP_ID"
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      // Signup Function
+      async function signUp() {
+          let email = document.getElementById("email").value;
+          let password = document.getElementById("password").value;
+
+          try {
+              let userCredential = await createUserWithEmailAndPassword(auth, email, password);
+              let user = userCredential.user;
+
+              // Save user data to Firestore
+              await setDoc(doc(db, "users", user.uid), {
+                  email: user.email,
+                  watchlist: [],
+                  portfolio: {}
+              });
+
+              document.getElementById("status").innerText = Signed Up as: ${user.email};
+              alert("User registered successfully!");
+          } catch (error) {
+              console.error("Error signing up:", error);
+              alert(error.message);
+          }
+      }
+
+      // Login Function
+      async function login() {
+          let email = document.getElementById("email").value;
+          let password = document.getElementById("password").value;
+
+          try {
+              let userCredential = await signInWithEmailAndPassword(auth, email, password);
+              let user = userCredential.user;
+
+              // Fetch user data from Firestore
+              const userDoc = await getDoc(doc(db, "users", user.uid));
+              if (userDoc.exists()) {
+                  console.log("User Data:", userDoc.data());
+              }
+
+              document.getElementById("status").innerText = Logged in as: ${user.email};
+              alert("Login successful!");
+          } catch (error) {
+              console.error("Error logging in:", error);
+              alert(error.message);
+          }
+      }
+
+      // Logout Function
+      async function logout() {
+          try {
+              await signOut(auth);
+              document.getElementById("status").innerText = "Not Logged In";
+              alert("Logged out successfully!");
+          } catch (error) {
+              console.error("Error logging out:", error);
+              alert(error.message);
+          }
+      }
+
+      // Track Authentication State
+      onAuthStateChanged(auth, (user) => {
+          if (user) {
+              document.getElementById("status").innerText = Logged in as: ${user.email};
+          } else {
+              document.getElementById("status").innerText = "Not Logged In";
+          }
+      });
+
+      // Make functions accessible in HTML
+      window.signUp = signUp;
+      window.login = login;
+      window.logout = logout;
+    </script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 50px;
+      }
+      .container {
+        max-width: 400px;
+        margin: auto;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        background: #f9f9f9;
+      }
+      input,
+      button {
+        margin: 10px;
+        padding: 8px;
+        width: 80%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Firebase Login System</h2>
+      <input type="email" id="email" placeholder="Enter Email" /><br />
+      <input type="password" id="password" placeholder="Enter Password" /><br />
+      <button onclick="signUp()">Sign Up</button>
+      <button onclick="login()">Login</button>
+      <button onclick="logout()">Logout</button>
+      <h3 id="status">Not Logged In</h3>
+    </div>
+  </body>
+</html>
